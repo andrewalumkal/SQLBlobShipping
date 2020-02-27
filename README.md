@@ -43,7 +43,7 @@ foreach ($Config in $RestoreConfig) {
 
 #### Apply all available transaction logs to all targets
 
-`Restore-RemainingLogBackups` will apply available transaction logs to all targets. Running the script below on a schedule will constantly apply any new logs found to all targets
+`Restore-RemainingLogBackups` will apply available transaction logs to all targets. Running the script below on a schedule will constantly replay any new logs found to all targets
 
 ```powershell
 foreach ($Config in $RestoreConfig) {
@@ -95,7 +95,7 @@ Sample JSON config
 ```
 
 ## Logging table
-A log table (dbo.SQLBlobShippingLog) is used to log all restore operations along with errors. The table can be created on any SQL Server instance using the script located in .\src\SQLBlobShipping\SQLScript
+A log table (dbo.SQLBlobShippingLog) is used to log all restore operations along with errors. The table can be created on any SQL Server instance using the script located in `.\src\SQLBlobShipping\SQLScript`.
 Once created, the log server / database needs to be configured in a JSON file
 
 ```JSON
