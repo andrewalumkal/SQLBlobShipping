@@ -2,7 +2,7 @@
 
 Replay SQL Backups from blob (managed backups) to target servers.
 
-This tool provides a seamless way to replay log backups to multiple targets. This is useful when setting up a complex AlwaysOn set up / migration, especially for larger databases that may take hours to seed. Currently only supports source databases that are configured with SQL Server Managed Backup to Azure. A logging table is used to track last applied log on a given target.
+This tool provides a seamless way to replay log backups to multiple targets. This is useful when setting up a complex AlwaysOn set up / migration, especially for larger databases that may take hours to auto seed. Currently only supports source databases that are configured with [SQL Server Managed Backup to Azure](https://docs.microsoft.com/en-us/sql/relational-databases/backup-restore/sql-server-managed-backup-to-microsoft-azure?view=sql-server-2014). A logging table is used to track last applied log on a given target.
 
 Requires the `SqlServer` module.
 
