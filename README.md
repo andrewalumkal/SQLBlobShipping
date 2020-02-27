@@ -55,7 +55,7 @@ foreach ($Config in $RestoreConfig) {
             -TargetDatabase $Config.TargetDatabaseName `
             -LogServerInstance $LogServerConfig.LogServer `
             -LogDatabase $LogServerConfig.LogDatabase `
-            -ScriptOnly $true
+            -ScriptOnly $false
     }
 }
 ```
