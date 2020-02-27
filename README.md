@@ -16,8 +16,8 @@ Import-Module .\src\SQLBlobShipping -Force
 
 The config files can live anywhere so it can be source controlled independently. Set the path to the config files. Sample config files are available in this repo (.\src\SQLBlobShipping\Config). 
 ```powershell
-$LogServerConfigPath = 'C:\DBSyncRestore\src\DBSyncRestore\Config\AG7Test.config.json'
-$RestoreConfigPath = 'C:\DBSyncRestore\src\DBSyncRestore\Config\AG7Test.config.json'
+$LogServerConfigPath = 'C:\DBSyncRestore\src\DBSyncRestore\Config\LogServer.config.json'
+$RestoreConfigPath = 'C:\DBSyncRestore\src\DBSyncRestore\Config\SampleRestore.config.json'
 
 $LogServerConfig = @(Read-RestoreConfig -Path $LogServerConfigPath).LogServerConfig
 $RestoreConfig = @(Read-RestoreConfig -Path $RestoreConfigPath).RestoreConfig
