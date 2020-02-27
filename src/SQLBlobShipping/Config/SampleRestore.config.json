@@ -1,0 +1,27 @@
+{
+    "RestoreConfig": [
+        {
+            "SourceDatabaseName": "AGDB1",
+            "SourceServer": "AG1-listener.company.corp",
+            "TargetServers": [
+                "dbserver01.company.corp",
+                "dbserver02.company.corp"
+            ],
+            "TargetDatabaseName": "AGDB1",
+            "TargetDataPath": "F:\\data",
+            "TargetLogPath": "G:\\log"
+        },
+        {
+            "SourceDatabaseName": "DBADatabase",
+            "SourceServer": "dbserver01.company.corp",
+            "TargetServers": [
+                "dbserver02.company.corp",
+                "dbserver03.company.corp",
+                "dbserver04.company.corp"
+            ],
+            "TargetDatabaseName": "DBADatabase_Restored",
+            "TargetDataPath": "F:\\data",
+            "TargetLogPath": "G:\\log"
+        }
+    ]
+}

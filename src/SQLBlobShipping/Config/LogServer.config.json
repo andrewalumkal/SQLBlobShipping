@@ -1,0 +1,6 @@
+{
+    "LogServerConfig": {
+        "LogServer": "loggingserver.prod",
+        "LogDatabase": "DBADatabase"
+    }
+}
