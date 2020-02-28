@@ -23,5 +23,5 @@ DATA_COMPRESSION = PAGE
 GO
 ALTER TABLE [dbo].[SQLBlobShippingLog] ADD CONSTRAINT [PK_SQLBlobShippingLog_LogID] PRIMARY KEY CLUSTERED ([LogID]) WITH (DATA_COMPRESSION = PAGE) ON [PRIMARY]
 GO
-CREATE NONCLUSTERED INDEX [IX_SQLBlobShipping_01] ON [dbo].[SQLBlobShippingLog] ([SourceServer], [TargetServer], [TargetDatabase]) INCLUDE ([RestoreStartDate]) WITH (DATA_COMPRESSION = PAGE) ON [PRIMARY]
+CREATE NONCLUSTERED INDEX [IX_SQLBlobShipping_01] ON [dbo].[SQLBlobShippingLog] ([TargetDatabase],[TargetServer]) INCLUDE ([RestoreStartDate]) WITH (DATA_COMPRESSION = PAGE) ON [PRIMARY]
 GO
