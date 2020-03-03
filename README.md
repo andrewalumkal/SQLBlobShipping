@@ -60,6 +60,11 @@ foreach ($Config in $RestoreConfig) {
 }
 ```
 
+## Prerequisites
+
+Prior to restoring backups on target servers, ensure that credentials to the storage container are created on all target servers in order to access the storage account/blob files. A helper function `Out-CreateSQLStorageCredentialScript` is available in this repo to output the TSQL create script by passing in the storage/container/key information. This function requires the `AzureRM` module to be installed.
+
+
 ## Sample config
 
 Sample JSON config
