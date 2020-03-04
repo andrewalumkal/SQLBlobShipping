@@ -91,7 +91,7 @@ Function Restore-LatestFullBackup {
         #Script only
         try {
 
-            Write-Output "Restoring $SourceDatabase on $TargetServerInstance"
+            Write-Output "Restoring $SourceDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate)"
 
             #Script restore
             Restore-SqlDatabase `
@@ -118,7 +118,7 @@ Function Restore-LatestFullBackup {
         
         try {
 
-            Write-Output "Restoring $SourceDatabase on $TargetServerInstance"
+            Write-Output "Restoring $SourceDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate)"
 
             #Log operation to log server
             $LogID = $null

@@ -65,7 +65,7 @@ Function Restore-RemainingLogBackups {
             #Script Only
             try {
     
-                Write-Output "Restoring log $($LogBackup.BackupPath) on $TargetServerInstance.$TargetDatabase"
+                Write-Output "Restoring log with LastLSN: $($LogBackup.LastLSN) on $TargetServerInstance - $TargetDatabase"
                 
                 #Script restore
                 Restore-SqlDatabase `
@@ -90,7 +90,7 @@ Function Restore-RemainingLogBackups {
         else {
             try {
     
-                Write-Output "Restoring log $($LogBackup.BackupPath) on $TargetServerInstance.$TargetDatabase"
+                Write-Output "Restoring log with LastLSN: $($LogBackup.LastLSN) on $TargetServerInstance - $TargetDatabase"
                                 
                 #Log operation to log server
                 $LogID = $null
