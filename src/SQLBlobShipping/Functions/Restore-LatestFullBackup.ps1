@@ -33,6 +33,11 @@ Function Restore-LatestFullBackup {
         [ValidateNotNullOrEmpty()]
         $LogDatabase,
 
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [System.Management.Automation.PSCredential]
+        $RestoreCredential,
+
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [bool]
@@ -133,14 +138,31 @@ Function Restore-LatestFullBackup {
                 -ErrorAction Stop
 
             #Run restore
-            Restore-SqlDatabase `
-                -ServerInstance $TargetServerInstance `
-                -Database $TargetDatabase `
-                -RelocateFile $relocate `
-                -RestoreAction 'Database' `
-                -BackupFile $BackupFiles `
-                -NoRecovery `
-                -ErrorAction Stop
+            if ($RestoreCredential -eq $null) {
+
+                Restore-SqlDatabase `
+                    -ServerInstance $TargetServerInstance `
+                    -Database $TargetDatabase `
+                    -RelocateFile $relocate `
+                    -RestoreAction 'Database' `
+                    -BackupFile $BackupFiles `
+                    -NoRecovery `
+                    -ErrorAction Stop   
+            }
+
+            else {
+
+                Restore-SqlDatabase `
+                    -ServerInstance $TargetServerInstance `
+                    -Database $TargetDatabase `
+                    -RelocateFile $relocate `
+                    -RestoreAction 'Database' `
+                    -BackupFile $BackupFiles `
+                    -NoRecovery `
+                    -Credential $RestoreCredential `
+                    -ErrorAction Stop
+                    
+            }
 
             #Update Success
             Write-UpdateRestoreOperationLogSuccess `
