@@ -112,6 +112,6 @@ Once created, the log server / database needs to be configured in a JSON file
 }
 ```
 
-## Credential
+## Credentials
 Databases may need to be restored using specific credentials (ex. SA) to ensure db owner is the same as the source database. Restore credentials can be *optionally* passed in using the `-RestoreCredential` parameter when calling `Restore-LatestFullBackup`. 
 
