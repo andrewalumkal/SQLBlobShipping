@@ -1,4 +1,5 @@
 {
+    "UseCentralBackupHistoryServer": 0,
     "RestoreConfig": [
         {
             "SourceDatabaseName": "AGDB1",

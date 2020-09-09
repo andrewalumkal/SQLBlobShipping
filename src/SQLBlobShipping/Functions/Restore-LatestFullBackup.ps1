@@ -9,6 +9,21 @@ Function Restore-LatestFullBackup {
         [ValidateNotNullOrEmpty()]
         $SourceDatabase,
 
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [bool]
+        $UseCentralBackupHistoryServer = 0,
+
+        [Parameter(Mandatory = $false)]
+        $CentralBackupHistoryServerConfig,
+
+        [Parameter(Mandatory = $false)]
+        [pscredential]
+        $CentralBackupHistoryCredential,
+
+        [Parameter(Mandatory = $false)]
+        $CentralBackupHistoryServerAzureDBCertificateAuth,
+
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         $TargetServerInstance,
@@ -38,6 +53,9 @@ Function Restore-LatestFullBackup {
         [System.Management.Automation.PSCredential]
         $RestoreCredential,
 
+        [Parameter(Mandatory = $false)]
+        [Switch]$RestoreWithRecovery,
+
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [bool]
@@ -45,12 +63,28 @@ Function Restore-LatestFullBackup {
    
     )
 
+    if ($UseCentralBackupHistoryServer) {
+
+        #Remove FQDN
+        $SourceServerCleansed = @($SourceServerInstance -split "\.")
+
+        $LatestFullBackup = @(Get-LatestFullBackupFromCentralServer -CentralBackupHistoryServerConfig $CentralBackupHistoryServerConfig `
+                -RestoreServerInstance $SourceServerCleansed[0] `
+                -RestoreDatabase $SourceDatabase `
+                -CentralBackupHistoryCredential $CentralBackupHistoryCredential `
+                -CentralBackupHistoryServerAzureDBCertificateAuth $CentralBackupHistoryServerAzureDBCertificateAuth)
+    }
+
+    else {
+        $LatestFullBackup = @(Get-LatestFullBackup -ServerInstance $SourceServerInstance -Database $SourceDatabase )
+    }
+
     
-    $LatestFullBackup = @(Get-LatestFullBackup -ServerInstance $SourceServerInstance -Database $SourceDatabase )
     if ($LatestFullBackup.Count -eq 0) {
         Write-Error "No available backup file found"
         break
     }
+
 
 
     $BackupFiles = @()
@@ -88,7 +122,8 @@ Function Restore-LatestFullBackup {
         $relocate += New-Object Microsoft.SqlServer.Management.Smo.RelocateFile ($dbfile.LogicalName, $newfile.ToString())
     }
 
-
+    #Set restore with recovery query
+    $RestoreWithRecoveryQuery = "RESTORE DATABASE [$($TargetDatabase)] WITH RECOVERY;"
 
 
     if ($ScriptOnly -eq $true) {
@@ -108,6 +143,13 @@ Function Restore-LatestFullBackup {
                 -NoRecovery `
                 -Script `
                 -ErrorAction Stop
+
+            if ($RestoreWithRecovery){
+                Write-Output ""
+                Write-Output "Script to recover database after restore:"
+                Write-Output $RestoreWithRecoveryQuery
+                Write-Output ""
+            }    
             
         }
         catch {
@@ -163,6 +205,11 @@ Function Restore-LatestFullBackup {
                     -ErrorAction Stop
                     
             }
+
+            #Restore with recovery if switch is on
+            if ($RestoreWithRecovery){
+                Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -ErrorAction Stop
+            } 
 
             #Update Success
             Write-UpdateRestoreOperationLogSuccess `
