@@ -1,0 +1,6 @@
+{
+    "CentralBackupHistoryServerConfig": {
+        "CentralBackupHistoryServer": "loggingserver.prod",
+        "CentralBackupHistoryDatabase": "DBADatabase"
+    }
+}

@@ -9,6 +9,21 @@ Function Restore-RemainingLogBackups {
         [ValidateNotNullOrEmpty()]
         $SourceDatabase,
 
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [bool]
+        $UseCentralBackupHistoryServer = 0,
+
+        [Parameter(Mandatory = $false)]
+        $CentralBackupHistoryServerConfig,
+
+        [Parameter(Mandatory = $false)]
+        [pscredential]
+        $CentralBackupHistoryCredential,
+
+        [Parameter(Mandatory = $false)]
+        $CentralBackupHistoryServerAzureDBCertificateAuth,
+
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         $TargetServerInstance,
@@ -48,9 +63,26 @@ Function Restore-RemainingLogBackups {
     }
 
     #Get all log backups to be applied
-    $LogBackupsToRestore = @(Get-RemainingLogBackupsToRestore -ServerInstance $SourceServerInstance `
-            -Database $SourceDatabase `
-            -LastLSN $LastRestoredBackup.LastLSN | Sort-Object -Property LastLSN)
+    if ($UseCentralBackupHistoryServer) {
+
+        #Remove FQDN
+        $SourceServerCleansed = @($SourceServerInstance -split "\.")
+
+        $LogBackupsToRestore = @(Get-RemainingLogBackupsToRestoreFromCentralServer -CentralBackupHistoryServerConfig $CentralBackupHistoryServerConfig `
+                -RestoreServerInstance $SourceServerCleansed[0] `
+                -RestoreDatabase $SourceDatabase `
+                -CentralBackupHistoryCredential $CentralBackupHistoryCredential `
+                -CentralBackupHistoryServerAzureDBCertificateAuth $CentralBackupHistoryServerAzureDBCertificateAuth `
+                -LastLSN $LastRestoredBackup.LastLSN | Sort-Object -Property LastLSN)
+    }
+
+    else {
+
+        $LogBackupsToRestore = @(Get-RemainingLogBackupsToRestore -ServerInstance $SourceServerInstance `
+                -Database $SourceDatabase `
+                -LastLSN $LastRestoredBackup.LastLSN | Sort-Object -Property LastLSN)
+    }
+    
 
     if ($LogBackupsToRestore.Count -eq 0) {
         Write-Output "No more logs to restore on TargetServer: $TargetServerInstance , Database: $TargetDatabase"
