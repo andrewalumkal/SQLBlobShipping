@@ -18,7 +18,7 @@ Import the module.
 Import-Module .\src\SQLBlobShipping -Force
 ```
 
-## Example using SQL managed backups
+### Example using SQL managed backups
 The config files can live anywhere so it can be source controlled independently. Set the path to the config files. Sample config files are available in this repo (.\src\SQLBlobShipping\Config). 
 ```powershell
 $LogServerConfigPath = 'C:\SQLBlobShipping\src\SQLBlobShipping\Config\LogServer.config.json'
@@ -70,7 +70,7 @@ foreach ($Config in $RestoreConfig) {
 ```
 
 
-## Example using central backup history server
+### Example using central backup history server
 This solution works well with a central backup history server that consolidates backup history from all your sql server machines. If using this [solution](https://github.com/andrewalumkal/SQLBackupHistoryETL), some additional parameters need to be passed in. An example of config files for this is available in this repo.
 ```powershell
 $LogServerConfigPath = 'C:\SQLBlobShipping\src\SQLBlobShipping\Config\LogServer.config.json'
