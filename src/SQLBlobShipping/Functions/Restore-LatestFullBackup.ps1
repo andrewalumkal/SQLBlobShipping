@@ -123,7 +123,7 @@ Function Restore-LatestFullBackup {
     }
 
     #Set restore with recovery query
-    $RestoreWithRecoveryQuery = "RESTORE DATABASE [$($TargetDatabase)] WITH RECOVERY;"
+    $RestoreWithRecoveryQuery = "RESTORE DATABASE [$($TargetDatabase)] WITH RECOVERY, KEEP_CDC, ENABLE_BROKER;"
 
 
     if ($ScriptOnly -eq $true) {
