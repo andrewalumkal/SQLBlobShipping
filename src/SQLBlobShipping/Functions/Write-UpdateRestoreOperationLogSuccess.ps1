@@ -11,21 +11,49 @@ Function Write-UpdateRestoreOperationLogSuccess {
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        $LogID
+        $LogID,
+
+        [Parameter(Mandatory = $false)]
+        [pscredential]
+        $LogServerCredential,
+
+        [Parameter(Mandatory = $false)]
+        $LogServerAzureDBCertificateAuth
 
     )
 
-    
-    
-    try {
-        $query = @"
+    $query = @"
             update dbo.SQLBlobShippingLog
                 set RestoreFinishDate = getutcdate()
                 where  LogID = $LogID
 "@
-
+    
+    try {
         
-        Invoke-Sqlcmd -ServerInstance $LogServerInstance -query $query -Database $LogDatabase -ErrorAction Stop
+        if ($LogServerAzureDBCertificateAuth) {
+            $conn = New-AzureSQLDbConnectionWithCert -AzureSQLDBServerName $LogServerInstance `
+                -DatabaseName $LogDatabase `
+                -TenantID $LogServerAzureDBCertificateAuth.TenantID `
+                -ClientID $LogServerAzureDBCertificateAuth.ClientID `
+                -FullCertificatePath $LogServerAzureDBCertificateAuth.FullCertificatePath
+
+            #Using Invoke-Sqlcmd2 to be able to pass in an existing connection
+            Invoke-Sqlcmd2 -SQLConnection $conn -query $query -ErrorAction Stop
+            $conn.Close()
+        }
+
+        elseif ($LogServerCredential) {
+            Invoke-Sqlcmd -ServerInstance $LogServerInstance `
+                -query $query `
+                -Database $LogDatabase `
+                -Credential $LogServerCredential `
+                -ErrorAction Stop
+        }
+
+        else {
+            Invoke-Sqlcmd -ServerInstance $LogServerInstance -query $query -Database $LogDatabase -ErrorAction Stop
+        }
+
 
     }
     catch {

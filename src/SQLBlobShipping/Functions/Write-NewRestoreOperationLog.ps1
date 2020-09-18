@@ -9,6 +9,13 @@ Function Write-NewRestoreOperationLog {
         [ValidateNotNullOrEmpty()]
         $LogDatabase,
 
+        [Parameter(Mandatory = $false)]
+        [pscredential]
+        $LogServerCredential,
+
+        [Parameter(Mandatory = $false)]
+        $LogServerAzureDBCertificateAuth,
+
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         $SourceServerInstance,
@@ -31,10 +38,7 @@ Function Write-NewRestoreOperationLog {
 
     )
 
-    
-    
-    try {
-        $query = @"
+    $query = @"
         insert into dbo.SQLBlobShippingLog
         (
             SourceServer
@@ -62,8 +66,34 @@ Function Write-NewRestoreOperationLog {
            ,$($BackupInfo.LastLSN)            -- LastLSN 
         )
 "@
+    
+    try {
         
-        $InsertedLogID = Invoke-Sqlcmd -ServerInstance $LogServerInstance -query $query -Database $LogDatabase -ErrorAction Stop
+        if ($LogServerAzureDBCertificateAuth) {
+            $conn = New-AzureSQLDbConnectionWithCert -AzureSQLDBServerName $LogServerInstance `
+                -DatabaseName $LogDatabase `
+                -TenantID $LogServerAzureDBCertificateAuth.TenantID `
+                -ClientID $LogServerAzureDBCertificateAuth.ClientID `
+                -FullCertificatePath $LogServerAzureDBCertificateAuth.FullCertificatePath
+
+            #Using Invoke-Sqlcmd2 to be able to pass in an existing connection
+            $InsertedLogID = Invoke-Sqlcmd2 -SQLConnection $conn -query $query -ErrorAction Stop
+            $conn.Close()
+        }
+
+        elseif ($LogServerCredential) {
+            $InsertedLogID = Invoke-Sqlcmd -ServerInstance $LogServerInstance `
+                -query $query `
+                -Database $LogDatabase `
+                -Credential $LogServerCredential `
+                -ErrorAction Stop
+        }
+
+        else {
+            $InsertedLogID = Invoke-Sqlcmd -ServerInstance $LogServerInstance -query $query -Database $LogDatabase -ErrorAction Stop
+        }
+        
+        
         return $InsertedLogID.LogID
 
     }

@@ -9,6 +9,13 @@ Function Get-LastRestoredBackup {
         [ValidateNotNullOrEmpty()]
         $LogDatabase,
 
+        [Parameter(Mandatory = $false)]
+        [pscredential]
+        $LogServerCredential,
+
+        [Parameter(Mandatory = $false)]
+        $LogServerAzureDBCertificateAuth,
+
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         $SourceServerInstance,
@@ -50,7 +57,32 @@ Function Get-LastRestoredBackup {
 "@
 
     try {
-        $LastRestoredBackup = Invoke-Sqlcmd -ServerInstance $LogServerInstance -query $query -Database $LogDatabase -ErrorAction Stop
+
+        if ($LogServerAzureDBCertificateAuth) {
+            $conn = New-AzureSQLDbConnectionWithCert -AzureSQLDBServerName $LogServerInstance `
+                -DatabaseName $LogDatabase `
+                -TenantID $LogServerAzureDBCertificateAuth.TenantID `
+                -ClientID $LogServerAzureDBCertificateAuth.ClientID `
+                -FullCertificatePath $LogServerAzureDBCertificateAuth.FullCertificatePath
+
+            #Using Invoke-Sqlcmd2 to be able to pass in an existing connection
+            $LastRestoredBackup = Invoke-Sqlcmd2 -SQLConnection $conn -query $query -ErrorAction Stop
+            $conn.Close()
+        }
+
+        elseif ($LogServerCredential) {
+            $LastRestoredBackup = Invoke-Sqlcmd -ServerInstance $LogServerInstance `
+                -query $query `
+                -Database $LogDatabase `
+                -Credential $LogServerCredential `
+                -ErrorAction Stop
+        }
+
+        else {
+            $LastRestoredBackup = Invoke-Sqlcmd -ServerInstance $LogServerInstance -query $query -Database $LogDatabase -ErrorAction Stop
+        }
+
+        
         return $LastRestoredBackup
         
     }
@@ -58,7 +90,7 @@ Function Get-LastRestoredBackup {
     catch {
         Write-Error "Failed to retrieve last restored backup from Log Server: $LogServerInstance , Database: $LogDatabase"
         Write-Output "Error Message: $_.Exception.Message" -ForegroundColor Red
-        break
+        return
     }
 
     
