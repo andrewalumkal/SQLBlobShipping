@@ -14,8 +14,8 @@ A sample all-in-one set-up:
 
 This set up provides an easy, resilient way to:
 - Restore your databases to any target server in the event of disaster - you don't require the source msdb to run restores
-- Restores for backup integrity checks
-- Continously run SQLBlobShipping for migration / setting up new replicas. A restoring replica can be kept in sync and simply joined when ready
+- Run scheduled restores for backup integrity checks
+- Continously run SQLBlobShipping for migration / setting up new replicas. New logs will continously be applied to target databases in the restoring state and in sync with the primary. Simply join to AG or recover database when ready.
 
 Requires the `SqlServer` module. 
 
