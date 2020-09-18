@@ -12,7 +12,10 @@ A sample all-in-one set-up:
 - Create SQLBlobShipping logging table on the same server
 - Start SQLBlobShipping
 
-This set up provides an easy, resilient way to restore your databases to any target server in the event of disaster (doesn't require source msdb) or for simple backup integrity testing.
+This set up provides an easy, resilient way to:
+- Restore your databases to any target server in the event of disaster - you don't require the source msdb to run restores
+- Restores for backup integrity checks
+- Continously run SQLBlobShipping for migration / setting up new replicas. A restoring replica can be kept in sync and simply joined when ready
 
 Requires the `SqlServer` module. 
 
