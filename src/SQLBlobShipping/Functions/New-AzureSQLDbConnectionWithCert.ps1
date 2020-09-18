@@ -71,7 +71,7 @@ Function New-AzureSQLDbConnectionWithCert {
     catch {
         Write-Error "Failed to create connection to Azure DB Server: $AzureSQLDBServerName"
         Write-Error "Error Message: $_.Exception.Message"
-        exit
+        return
     }
 
     

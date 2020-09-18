@@ -40,6 +40,11 @@ Function Restore-LatestFullBackup {
         [ValidateNotNullOrEmpty()]
         $TargetLogPath,
 
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [System.Management.Automation.PSCredential]
+        $RestoreCredential,
+
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         $LogServerInstance,
@@ -49,9 +54,11 @@ Function Restore-LatestFullBackup {
         $LogDatabase,
 
         [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [System.Management.Automation.PSCredential]
-        $RestoreCredential,
+        [pscredential]
+        $LogServerCredential,
+
+        [Parameter(Mandatory = $false)]
+        $LogServerAzureDBCertificateAuth,
 
         [Parameter(Mandatory = $false)]
         [Switch]$RestoreWithRecovery,
@@ -125,13 +132,22 @@ Function Restore-LatestFullBackup {
     #Set restore with recovery query
     $RestoreWithRecoveryQuery = "RESTORE DATABASE [$($TargetDatabase)] WITH RECOVERY, KEEP_CDC, ENABLE_BROKER;"
 
+    [bool]$DBAlreadyExistsOnServer = Test-DBExistsOnServer -ServerInstance $TargetServerInstance -Database $TargetDatabase
 
     if ($ScriptOnly -eq $true) {
 
         #Script only
         try {
 
+            Write-Output "--------------------------SCRIPT ONLY MODE--------------------------"
+
             Write-Output "Restoring $SourceDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate)"
+
+            if ($DBAlreadyExistsOnServer){
+                Write-Output ""
+                Write-Output "WARNING: Database:[$TargetDatabase] may already exist on target server:[$TargetServerInstance] or the command was not able to check if database already exists."
+                Write-Output ""
+            }
 
             #Script restore
             Restore-SqlDatabase `
@@ -149,7 +165,10 @@ Function Restore-LatestFullBackup {
                 Write-Output "Script to recover database after restore:"
                 Write-Output $RestoreWithRecoveryQuery
                 Write-Output ""
-            }    
+            }
+            
+            Write-Output "--------------------------END OF SCRIPT--------------------------"
+            Write-Output ""
             
         }
         catch {
@@ -167,6 +186,13 @@ Function Restore-LatestFullBackup {
 
             Write-Output "Restoring $SourceDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate)"
 
+            if ($DBAlreadyExistsOnServer){
+                Write-Output ""
+                Write-Error "ERROR: Database:[$TargetDatabase] may already exist on target server:[$TargetServerInstance] or the command was not able to check if database already exists. Restore attempt ABORTED to prevent overwrite."
+                Write-Output ""
+                return
+            }
+
             #Log operation to log server
             $LogID = $null
             $LogID = Write-NewRestoreOperationLog `
@@ -176,6 +202,8 @@ Function Restore-LatestFullBackup {
                 -TargetDatabase $TargetDatabase  `
                 -LogServerInstance $LogServerInstance `
                 -LogDatabase $LogDatabase `
+                -LogServerCredential $LogServerCredential `
+                -LogServerAzureDBCertificateAuth $LogServerAzureDBCertificateAuth `
                 -BackupInfo $LatestFullBackup[0] `
                 -ErrorAction Stop
 
@@ -216,6 +244,8 @@ Function Restore-LatestFullBackup {
                 -LogServerInstance $LogServerInstance `
                 -LogDatabase $LogDatabase `
                 -LogID $LogID `
+                -LogServerCredential $LogServerCredential `
+                -LogServerAzureDBCertificateAuth $LogServerAzureDBCertificateAuth `
                 -ErrorAction Stop
 
             
@@ -229,6 +259,8 @@ Function Restore-LatestFullBackup {
                 Write-UpdateRestoreOperationLogFailure `
                     -LogServerInstance $LogServerInstance `
                     -LogDatabase $LogDatabase `
+                    -LogServerCredential $LogServerCredential `
+                    -LogServerAzureDBCertificateAuth $LogServerAzureDBCertificateAuth `
                     -LogID $LogID `
                     -ErrorMessage $ErrorMessage 
             }

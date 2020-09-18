@@ -40,6 +40,13 @@ Function Restore-RemainingLogBackups {
         [ValidateNotNullOrEmpty()]
         $LogDatabase,
 
+        [Parameter(Mandatory = $false)]
+        [pscredential]
+        $LogServerCredential,
+
+        [Parameter(Mandatory = $false)]
+        $LogServerAzureDBCertificateAuth,
+
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [bool]
@@ -53,7 +60,9 @@ Function Restore-RemainingLogBackups {
         -TargetServerInstance $TargetServerInstance `
         -TargetDatabase $TargetDatabase `
         -LogServerInstance $LogServerInstance `
-        -LogDatabase $LogDatabase
+        -LogDatabase $LogDatabase `
+        -LogServerCredential $LogServerCredential `
+        -LogServerAzureDBCertificateAuth $LogServerAzureDBCertificateAuth
 
 
     if ($LastRestoredBackup -eq $null) {
@@ -133,6 +142,8 @@ Function Restore-RemainingLogBackups {
                     -TargetDatabase $TargetDatabase  `
                     -LogServerInstance $LogServerInstance `
                     -LogDatabase $LogDatabase `
+                    -LogServerCredential $LogServerCredential `
+                    -LogServerAzureDBCertificateAuth $LogServerAzureDBCertificateAuth `
                     -BackupInfo $LogBackup `
                     -ErrorAction Stop
 
@@ -150,6 +161,8 @@ Function Restore-RemainingLogBackups {
                 Write-UpdateRestoreOperationLogSuccess `
                     -LogServerInstance $LogServerInstance `
                     -LogDatabase $LogDatabase `
+                    -LogServerCredential $LogServerCredential `
+                    -LogServerAzureDBCertificateAuth $LogServerAzureDBCertificateAuth `
                     -LogID $LogID `
                     -ErrorAction Stop
     
@@ -164,6 +177,8 @@ Function Restore-RemainingLogBackups {
                     Write-UpdateRestoreOperationLogFailure `
                         -LogServerInstance $LogServerInstance `
                         -LogDatabase $LogDatabase `
+                        -LogServerCredential $LogServerCredential `
+                        -LogServerAzureDBCertificateAuth $LogServerAzureDBCertificateAuth `
                         -LogID $LogID `
                         -ErrorMessage $ErrorMessage 
                 }

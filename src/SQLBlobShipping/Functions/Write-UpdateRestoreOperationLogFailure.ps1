@@ -13,6 +13,13 @@ Function Write-UpdateRestoreOperationLogFailure {
         [ValidateNotNullOrEmpty()]
         $LogID,
 
+        [Parameter(Mandatory = $false)]
+        [pscredential]
+        $LogServerCredential,
+
+        [Parameter(Mandatory = $false)]
+        $LogServerAzureDBCertificateAuth,
+
         [ValidateNotNullOrEmpty()]
         $ErrorMessage
 
@@ -20,16 +27,39 @@ Function Write-UpdateRestoreOperationLogFailure {
 
     $ErrorMessage = $ErrorMessage -replace "'", ""
     $ErrorMessage = $ErrorMessage -replace '"', ""
-    
-    try {
-        $query = @"
+
+    $query = @"
             update dbo.SQLBlobShippingLog
                 set RestoreError = 1,
                     RestoreErrorMessage = '$ErrorMessage'
                 where  LogID = $LogID
 "@
+    
+    try {
+        
+        if ($LogServerAzureDBCertificateAuth) {
+            $conn = New-AzureSQLDbConnectionWithCert -AzureSQLDBServerName $LogServerInstance `
+                -DatabaseName $LogDatabase `
+                -TenantID $LogServerAzureDBCertificateAuth.TenantID `
+                -ClientID $LogServerAzureDBCertificateAuth.ClientID `
+                -FullCertificatePath $LogServerAzureDBCertificateAuth.FullCertificatePath
 
-        Invoke-Sqlcmd -ServerInstance $LogServerInstance -query $query -Database $LogDatabase -ErrorAction Stop
+            #Using Invoke-Sqlcmd2 to be able to pass in an existing connection
+            Invoke-Sqlcmd2 -SQLConnection $conn -query $query -ErrorAction Stop
+            $conn.Close()
+        }
+
+        elseif ($LogServerCredential) {
+            Invoke-Sqlcmd -ServerInstance $LogServerInstance `
+                -query $query `
+                -Database $LogDatabase `
+                -Credential $LogServerCredential `
+                -ErrorAction Stop
+        }
+
+        else {
+            Invoke-Sqlcmd -ServerInstance $LogServerInstance -query $query -Database $LogDatabase -ErrorAction Stop
+        }
 
     }
     catch {
