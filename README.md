@@ -1,10 +1,18 @@
 # SQLBlobShipping
 
-Replay SQL Backups from blob (managed backups) to target servers.
+Replay SQL Backups from blob / managed backups to target servers.
 
-This tool provides a seamless way to replay log backups to multiple targets. This is useful when setting up a complex AlwaysOn set up / migration, especially for larger databases that may take hours to auto seed. Currently only supports source databases that are configured with [SQL Server Managed Backup to Azure](https://docs.microsoft.com/en-us/sql/relational-databases/backup-restore/sql-server-managed-backup-to-microsoft-azure?view=sql-server-2014) or a [central backup server solution](https://github.com/andrewalumkal/SQLBackupHistoryETL). A logging table is used to track last applied log on a given target.
+This tool provides a seamless way to replay log backups to multiple targets. This is useful when setting up a complex AlwaysOn set up / migration, especially for larger databases that may take hours to auto seed. Currently only supports source databases that are configured with [SQL Server Managed Backup to Azure](https://docs.microsoft.com/en-us/sql/relational-databases/backup-restore/sql-server-managed-backup-to-microsoft-azure?view=sql-server-2014) or databases backed up to Azure blobs with a [central backup server solution](https://github.com/andrewalumkal/SQLBackupHistoryETL). A logging table is used to track last applied log on a given target.
+
 
 This solution can also be used to restore and recover the latest available full backup for integrity checks. Just use the `-RestoreWithRecovery` switch when calling `Restore-LatestFullBackup`
+
+A sample all-in-one set-up:
+- Use the [SQLBackupHistoryETL](https://github.com/andrewalumkal/SQLBackupHistoryETL) solution to consolidate all your backup history into a single SQL Server / Azure SQL Database
+- Create SQLBlobShipping logging table on the same server
+- Start SQLBlobShipping
+
+This set up provides an easy, resilient way to restore your databases to any target server in the event of disaster (doesn't require source msdb) or for simple backup integrity testing.
 
 Requires the `SqlServer` module. 
 
@@ -71,7 +79,8 @@ foreach ($Config in $RestoreConfig) {
 
 
 ### Example using central backup history server
-This solution works well with a central backup history server that consolidates backup history from all your sql server machines. If using this [solution](https://github.com/andrewalumkal/SQLBackupHistoryETL), some additional parameters need to be passed in. An example of config files for this is available in this repo.
+This solution works well with a central backup history server that consolidates backup history from all your sql server machines. If using this [solution](https://github.com/andrewalumkal/SQLBackupHistoryETL), some additional parameters need to be passed in. An example of config files for this is available in this repo. This example also uses the central backup history server as the log server. This gives an all-in-one solution - for example, use a standalone Azure SQL DB as the central backup history + log server and SQLBlobShip to on any target.
+
 ```powershell
 $LogServerConfigPath = 'C:\SQLBlobShipping\src\SQLBlobShipping\Config\LogServer.config.json'
 $RestoreConfigPath = 'C:\SQLBlobShipping\src\SQLBlobShipping\Config\SampleRestoreCentralServer.config.json'
@@ -82,7 +91,7 @@ $RestoreConfig = @(Read-RestoreConfig -Path $RestoreConfigPath).RestoreConfig
 [bool]$UseCentralBackupHistoryServer = @(Read-RestoreConfig -Path $RestoreConfigPath).UseCentralBackupHistoryServer
 $CentralBackupServerConfig = @(Read-RestoreConfig -Path $CentralBackupServerConfigPath).CentralBackupHistoryServerConfig
 
-#Create credential to read from central server
+#Create credential to central server
 [string]$userName = 'myuser'
 [string]$userPassword = 'mypass'
 [securestring]$secStringPassword = ConvertTo-SecureString $userPassword -AsPlainText -Force
@@ -110,6 +119,7 @@ foreach ($Config in $RestoreConfig) {
             -TargetLogPath $Config.TargetLogPath `
             -LogServerInstance $LogServerConfig.LogServer `
             -LogDatabase $LogServerConfig.LogDatabase `
+            -LogServerCredential $credObject `
             -ScriptOnly $false
             #-CentralBackupHistoryServerAzureDBCertificateAuth $AzureDBCertificateAuth #Optionally can pass in certificate authentication
             #-RestoreWithRecovery
@@ -132,6 +142,7 @@ foreach ($Config in $RestoreConfig) {
             -TargetDatabase $Config.TargetDatabaseName `
             -LogServerInstance $LogServerConfig.LogServer `
             -LogDatabase $LogServerConfig.LogDatabase `
+            -LogServerCredential $credObject `
             -ScriptOnly $false
             #-CentralBackupHistoryServerAzureDBCertificateAuth $AzureDBCertificateAuth #Optionally can pass in certificate authentication
     }
