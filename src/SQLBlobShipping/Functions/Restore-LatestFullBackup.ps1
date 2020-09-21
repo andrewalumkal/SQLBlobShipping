@@ -108,7 +108,15 @@ Function Restore-LatestFullBackup {
 
     try {
         $query = "RESTORE FileListOnly FROM  URL='$FirstFile'"
-        $dbfiles = Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $query -Database master -ErrorAction Stop
+
+        if ($RestoreCredential -eq $null) {
+            $dbfiles = Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $query -Database master -ErrorAction Stop
+        }
+
+        else {
+            $dbfiles = Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $query -Database master -Credential $RestoreCredential -ErrorAction Stop
+        }
+        
     }
     catch {
         Write-Output "Error Message: $_.Exception.Message" -ForegroundColor Red
@@ -150,7 +158,8 @@ Function Restore-LatestFullBackup {
             }
 
             #Script restore
-            Restore-SqlDatabase `
+            if ($RestoreCredential -eq $null) {
+                Restore-SqlDatabase `
                 -ServerInstance $TargetServerInstance `
                 -Database $TargetDatabase `
                 -RelocateFile $relocate `
@@ -159,6 +168,21 @@ Function Restore-LatestFullBackup {
                 -NoRecovery `
                 -Script `
                 -ErrorAction Stop
+            }
+
+            else {
+                Restore-SqlDatabase `
+                -ServerInstance $TargetServerInstance `
+                -Database $TargetDatabase `
+                -RelocateFile $relocate `
+                -RestoreAction 'Database' `
+                -BackupFile $BackupFiles `
+                -Credential $RestoreCredential `
+                -NoRecovery `
+                -Script `
+                -ErrorAction Stop
+            }
+            
 
             if ($RestoreWithRecovery){
                 Write-Output ""

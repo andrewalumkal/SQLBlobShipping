@@ -32,6 +32,11 @@ Function Restore-RemainingLogBackups {
         [ValidateNotNullOrEmpty()]
         $TargetDatabase,
 
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [System.Management.Automation.PSCredential]
+        $RestoreCredential,
+
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         $LogServerInstance,
@@ -109,7 +114,8 @@ Function Restore-RemainingLogBackups {
                 Write-Output "Restoring log with LastLSN: $($LogBackup.LastLSN) on $TargetServerInstance - $TargetDatabase"
                 
                 #Script restore
-                Restore-SqlDatabase `
+                if ($RestoreCredential -eq $null) {
+                    Restore-SqlDatabase `
                     -ServerInstance $TargetServerInstance `
                     -Database $TargetDatabase `
                     -RestoreAction 'Log' `
@@ -117,6 +123,20 @@ Function Restore-RemainingLogBackups {
                     -NoRecovery `
                     -Script `
                     -ErrorAction Stop
+                }
+
+                else {
+                    Restore-SqlDatabase `
+                    -ServerInstance $TargetServerInstance `
+                    -Database $TargetDatabase `
+                    -RestoreAction 'Log' `
+                    -BackupFile $LogBackup.BackupPath `
+                    -Credential $RestoreCredential `
+                    -NoRecovery `
+                    -Script `
+                    -ErrorAction Stop
+                }
+                
                
             }
             catch {
@@ -148,13 +168,27 @@ Function Restore-RemainingLogBackups {
                     -ErrorAction Stop
 
                 #Run restore
-                Restore-SqlDatabase `
+                if ($RestoreCredential -eq $null) {
+                    Restore-SqlDatabase `
                     -ServerInstance $TargetServerInstance `
                     -Database $TargetDatabase `
                     -RestoreAction 'Log' `
                     -BackupFile $LogBackup.BackupPath `
                     -NoRecovery `
                     -ErrorAction Stop
+                }
+
+                else {
+                    Restore-SqlDatabase `
+                    -ServerInstance $TargetServerInstance `
+                    -Database $TargetDatabase `
+                    -RestoreAction 'Log' `
+                    -BackupFile $LogBackup.BackupPath `
+                    -Credential $RestoreCredential `
+                    -NoRecovery `
+                    -ErrorAction Stop
+                }
+                
                 
   
                 #Update Success
