@@ -58,7 +58,7 @@ Function Write-UpdateRestoreOperationLogSuccess {
     }
     catch {
         Write-Error "Failed to log restore operation as success on Log Server: $LogServerInstance , Database: $LogDatabase"
-        Write-Output "Error Message: $_.Exception.Message" -ForegroundColor Red
+        Write-Output "Error Message: $_.Exception.Message"
         return
     }
 

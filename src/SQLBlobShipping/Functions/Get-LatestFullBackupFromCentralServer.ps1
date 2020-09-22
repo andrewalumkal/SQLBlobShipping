@@ -60,7 +60,7 @@ Function Get-LatestFullBackupFromCentralServer {
 
     catch {
         Write-Error "Failed to retrieve latest full backups from central server: $($CentralBackupHistoryServerConfig.CentralBackupHistoryServer) | Database: $($CentralBackupHistoryServerConfig.CentralBackupHistoryDatabase)"
-        Write-Output "Error Message: $_.Exception.Message" -ForegroundColor Red
+        Write-Output "Error Message: $_.Exception.Message"
 
         if ($conn) {
             $conn.Close()

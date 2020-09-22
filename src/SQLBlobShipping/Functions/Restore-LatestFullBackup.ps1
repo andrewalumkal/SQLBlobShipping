@@ -119,7 +119,7 @@ Function Restore-LatestFullBackup {
         
     }
     catch {
-        Write-Output "Error Message: $_.Exception.Message" -ForegroundColor Red
+        Write-Output "Error Message: $_.Exception.Message"
         break
     }
 
@@ -151,7 +151,7 @@ Function Restore-LatestFullBackup {
 
             Write-Output "Restoring $SourceDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate)"
 
-            if ($DBAlreadyExistsOnServer){
+            if ($DBAlreadyExistsOnServer) {
                 Write-Output ""
                 Write-Output "WARNING: Database:[$TargetDatabase] may already exist on target server:[$TargetServerInstance] or the command was not able to check if database already exists."
                 Write-Output ""
@@ -160,31 +160,31 @@ Function Restore-LatestFullBackup {
             #Script restore
             if ($RestoreCredential -eq $null) {
                 Restore-SqlDatabase `
-                -ServerInstance $TargetServerInstance `
-                -Database $TargetDatabase `
-                -RelocateFile $relocate `
-                -RestoreAction 'Database' `
-                -BackupFile $BackupFiles `
-                -NoRecovery `
-                -Script `
-                -ErrorAction Stop
+                    -ServerInstance $TargetServerInstance `
+                    -Database $TargetDatabase `
+                    -RelocateFile $relocate `
+                    -RestoreAction 'Database' `
+                    -BackupFile $BackupFiles `
+                    -NoRecovery `
+                    -Script `
+                    -ErrorAction Stop
             }
 
             else {
                 Restore-SqlDatabase `
-                -ServerInstance $TargetServerInstance `
-                -Database $TargetDatabase `
-                -RelocateFile $relocate `
-                -RestoreAction 'Database' `
-                -BackupFile $BackupFiles `
-                -Credential $RestoreCredential `
-                -NoRecovery `
-                -Script `
-                -ErrorAction Stop
+                    -ServerInstance $TargetServerInstance `
+                    -Database $TargetDatabase `
+                    -RelocateFile $relocate `
+                    -RestoreAction 'Database' `
+                    -BackupFile $BackupFiles `
+                    -Credential $RestoreCredential `
+                    -NoRecovery `
+                    -Script `
+                    -ErrorAction Stop
             }
             
 
-            if ($RestoreWithRecovery){
+            if ($RestoreWithRecovery) {
                 Write-Output ""
                 Write-Output "Script to recover database after restore:"
                 Write-Output $RestoreWithRecoveryQuery
@@ -210,7 +210,7 @@ Function Restore-LatestFullBackup {
 
             Write-Output "Restoring $SourceDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate)"
 
-            if ($DBAlreadyExistsOnServer){
+            if ($DBAlreadyExistsOnServer) {
                 Write-Output ""
                 Write-Error "ERROR: Database:[$TargetDatabase] may already exist on target server:[$TargetServerInstance] or the command was not able to check if database already exists. Restore attempt ABORTED to prevent overwrite."
                 Write-Output ""
@@ -241,7 +241,12 @@ Function Restore-LatestFullBackup {
                     -RestoreAction 'Database' `
                     -BackupFile $BackupFiles `
                     -NoRecovery `
-                    -ErrorAction Stop   
+                    -ErrorAction Stop  
+                    
+                if ($RestoreWithRecovery) {
+                    Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -ErrorAction Stop
+                } 
+            
             }
 
             else {
@@ -255,13 +260,14 @@ Function Restore-LatestFullBackup {
                     -NoRecovery `
                     -Credential $RestoreCredential `
                     -ErrorAction Stop
+
+                if ($RestoreWithRecovery) {
+                    Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -Credential $RestoreCredential -ErrorAction Stop
+                } 
+            
                     
             }
 
-            #Restore with recovery if switch is on
-            if ($RestoreWithRecovery){
-                Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -ErrorAction Stop
-            } 
 
             #Update Success
             Write-UpdateRestoreOperationLogSuccess `

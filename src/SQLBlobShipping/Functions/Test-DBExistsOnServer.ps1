@@ -27,7 +27,7 @@ Function Test-DBExistsOnServer {
 
     catch {
         Write-Error "Failed to check if database [$Database] exists on $ServerInstance"
-        Write-Output "Error Message: $_.Exception.Message" -ForegroundColor Red
+        Write-Output "Error Message: $_.Exception.Message"
         return $DBExistsOnServer
     }
 

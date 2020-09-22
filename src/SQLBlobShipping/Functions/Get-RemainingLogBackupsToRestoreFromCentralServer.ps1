@@ -65,7 +65,7 @@ Function Get-RemainingLogBackupsToRestoreFromCentralServer {
 
     catch {
         Write-Error "Failed to retrieve latest log backups from central server: $($CentralBackupHistoryServerConfig.CentralBackupHistoryServer) | Database: $($CentralBackupHistoryServerConfig.CentralBackupHistoryDatabase)"
-        Write-Output "Error Message: $_.Exception.Message" -ForegroundColor Red
+        Write-Output "Error Message: $_.Exception.Message"
 
         if ($conn) {
             $conn.Close()

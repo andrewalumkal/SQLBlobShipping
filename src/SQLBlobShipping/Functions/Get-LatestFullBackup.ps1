@@ -40,7 +40,7 @@ Function Get-LatestFullBackup {
 
     catch {
         Write-Error "Failed to retrieve latest full backups on $ServerInstance.$Database"
-        Write-Output "Error Message: $_.Exception.Message" -ForegroundColor Red
+        Write-Output "Error Message: $_.Exception.Message"
         break
     }
     

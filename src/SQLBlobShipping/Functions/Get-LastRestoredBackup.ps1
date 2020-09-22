@@ -89,7 +89,7 @@ Function Get-LastRestoredBackup {
     
     catch {
         Write-Error "Failed to retrieve last restored backup from Log Server: $LogServerInstance , Database: $LogDatabase"
-        Write-Output "Error Message: $_.Exception.Message" -ForegroundColor Red
+        Write-Output "Error Message: $_.Exception.Message"
         return
     }
 
