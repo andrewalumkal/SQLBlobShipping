@@ -45,11 +45,11 @@ Function Restore-LatestFullBackup {
         [System.Management.Automation.PSCredential]
         $RestoreCredential,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         $LogServerInstance,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         $LogDatabase,
 
@@ -69,6 +69,15 @@ Function Restore-LatestFullBackup {
         $ScriptOnly
    
     )
+
+    #If not in script only mode, ensure log db info is passed in
+    if (!$ScriptOnly){   
+
+        if ([string]::IsNullOrEmpty($LogServerInstance) -or [string]::IsNullOrEmpty($LogDatabase)){   
+            Write-Error "Please provide LogServerInstance and LogDatabase parameters. Or run this command in script only mode."
+            return
+        }
+    }
 
     if ($UseCentralBackupHistoryServer) {
 
@@ -149,7 +158,7 @@ Function Restore-LatestFullBackup {
 
             Write-Output "--------------------------SCRIPT ONLY MODE--------------------------"
 
-            Write-Output "Restoring $SourceDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate)"
+            Write-Output "Restoring $TargetDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate)"
 
             if ($DBAlreadyExistsOnServer) {
                 Write-Output ""
@@ -208,7 +217,7 @@ Function Restore-LatestFullBackup {
         
         try {
 
-            Write-Output "Restoring $SourceDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate)"
+            Write-Output "Restoring $TargetDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate)"
 
             if ($DBAlreadyExistsOnServer) {
                 Write-Output ""
