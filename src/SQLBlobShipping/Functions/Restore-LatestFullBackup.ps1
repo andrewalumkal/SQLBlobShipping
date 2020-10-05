@@ -101,7 +101,7 @@ Function Restore-LatestFullBackup {
     }
     catch {
 
-        Write-Error "Failed to retrieve latest full backups."
+        Write-Error "Failed to retrieve latest full backup for $SourceServerInstance - $SourceDatabase"
         Write-Error "Error Message: $_.Exception.Message"
         return
         
