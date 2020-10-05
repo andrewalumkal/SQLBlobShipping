@@ -59,43 +59,63 @@ Function Restore-RemainingLogBackups {
    
     )
 
-    #Get last restored backup from log server
-    $LastRestoredBackup = Get-LastRestoredBackup -SourceServerInstance $SourceServerInstance `
-        -SourceDatabase $SourceDatabase `
-        -TargetServerInstance $TargetServerInstance `
-        -TargetDatabase $TargetDatabase `
-        -LogServerInstance $LogServerInstance `
-        -LogDatabase $LogDatabase `
-        -LogServerCredential $LogServerCredential `
-        -LogServerAzureDBCertificateAuth $LogServerAzureDBCertificateAuth
-
-
-    if ($LastRestoredBackup -eq $null) {
-        Write-Output "No log marker found on log server for SourceServer: $SourceServerInstance , SourceDB: $SourceDatabase , TargetServer: $TargetServerInstance , TargetDB: $TargetDatabase"
-        Write-Output "Restore a full backup and try again"
+    try {
+        #Get last restored backup from log server
+        $LastRestoredBackup = Get-LastRestoredBackup -SourceServerInstance $SourceServerInstance `
+            -SourceDatabase $SourceDatabase `
+            -TargetServerInstance $TargetServerInstance `
+            -TargetDatabase $TargetDatabase `
+            -LogServerInstance $LogServerInstance `
+            -LogDatabase $LogDatabase `
+            -LogServerCredential $LogServerCredential `
+            -LogServerAzureDBCertificateAuth $LogServerAzureDBCertificateAuth
+    }
+    catch {
+        Write-Error "Failed to retrieve last restored backup from Log Server: $LogServerInstance , Database: $LogDatabase"
+        Write-Output "Error Message: $_.Exception.Message"
         return
     }
 
-    #Get all log backups to be applied
-    if ($UseCentralBackupHistoryServer) {
 
-        #Remove FQDN
-        $SourceServerCleansed = @($SourceServerInstance -split "\.")
 
-        $LogBackupsToRestore = @(Get-RemainingLogBackupsToRestoreFromCentralServer -CentralBackupHistoryServerConfig $CentralBackupHistoryServerConfig `
-                -RestoreServerInstance $SourceServerCleansed[0] `
-                -RestoreDatabase $SourceDatabase `
-                -CentralBackupHistoryCredential $CentralBackupHistoryCredential `
-                -CentralBackupHistoryServerAzureDBCertificateAuth $CentralBackupHistoryServerAzureDBCertificateAuth `
-                -LastLSN $LastRestoredBackup.LastLSN | Sort-Object -Property LastLSN)
+    if ($LastRestoredBackup -eq $null) {
+        Write-Error "No log marker found on log server for SourceServer: $SourceServerInstance , SourceDB: $SourceDatabase , TargetServer: $TargetServerInstance , TargetDB: $TargetDatabase . Restore a full backup and try again."
+        return
     }
 
-    else {
 
-        $LogBackupsToRestore = @(Get-RemainingLogBackupsToRestore -ServerInstance $SourceServerInstance `
-                -Database $SourceDatabase `
-                -LastLSN $LastRestoredBackup.LastLSN | Sort-Object -Property LastLSN)
+
+    try {
+
+        #Get all log backups to be applied
+        if ($UseCentralBackupHistoryServer) {
+
+            #Remove FQDN
+            $SourceServerCleansed = @($SourceServerInstance -split "\.")
+
+            $LogBackupsToRestore = @(Get-RemainingLogBackupsToRestoreFromCentralServer -CentralBackupHistoryServerConfig $CentralBackupHistoryServerConfig `
+                    -RestoreServerInstance $SourceServerCleansed[0] `
+                    -RestoreDatabase $SourceDatabase `
+                    -CentralBackupHistoryCredential $CentralBackupHistoryCredential `
+                    -CentralBackupHistoryServerAzureDBCertificateAuth $CentralBackupHistoryServerAzureDBCertificateAuth `
+                    -LastLSN $LastRestoredBackup.LastLSN | Sort-Object -Property LastLSN)
+        }
+
+        else {
+
+            $LogBackupsToRestore = @(Get-RemainingLogBackupsToRestore -ServerInstance $SourceServerInstance `
+                    -Database $SourceDatabase `
+                    -LastLSN $LastRestoredBackup.LastLSN | Sort-Object -Property LastLSN)
+        }
+
     }
+    catch {
+        
+        Write-Error "Failed to retrieve latest logs backups"
+        Write-Output "Error Message: $_.Exception.Message"
+        return
+    }
+    
     
 
     if ($LogBackupsToRestore.Count -eq 0) {
@@ -116,25 +136,25 @@ Function Restore-RemainingLogBackups {
                 #Script restore
                 if ($RestoreCredential -eq $null) {
                     Restore-SqlDatabase `
-                    -ServerInstance $TargetServerInstance `
-                    -Database $TargetDatabase `
-                    -RestoreAction 'Log' `
-                    -BackupFile $LogBackup.BackupPath `
-                    -NoRecovery `
-                    -Script `
-                    -ErrorAction Stop
+                        -ServerInstance $TargetServerInstance `
+                        -Database $TargetDatabase `
+                        -RestoreAction 'Log' `
+                        -BackupFile $LogBackup.BackupPath `
+                        -NoRecovery `
+                        -Script `
+                        -ErrorAction Stop
                 }
 
                 else {
                     Restore-SqlDatabase `
-                    -ServerInstance $TargetServerInstance `
-                    -Database $TargetDatabase `
-                    -RestoreAction 'Log' `
-                    -BackupFile $LogBackup.BackupPath `
-                    -Credential $RestoreCredential `
-                    -NoRecovery `
-                    -Script `
-                    -ErrorAction Stop
+                        -ServerInstance $TargetServerInstance `
+                        -Database $TargetDatabase `
+                        -RestoreAction 'Log' `
+                        -BackupFile $LogBackup.BackupPath `
+                        -Credential $RestoreCredential `
+                        -NoRecovery `
+                        -Script `
+                        -ErrorAction Stop
                 }
                 
                
@@ -170,23 +190,23 @@ Function Restore-RemainingLogBackups {
                 #Run restore
                 if ($RestoreCredential -eq $null) {
                     Restore-SqlDatabase `
-                    -ServerInstance $TargetServerInstance `
-                    -Database $TargetDatabase `
-                    -RestoreAction 'Log' `
-                    -BackupFile $LogBackup.BackupPath `
-                    -NoRecovery `
-                    -ErrorAction Stop
+                        -ServerInstance $TargetServerInstance `
+                        -Database $TargetDatabase `
+                        -RestoreAction 'Log' `
+                        -BackupFile $LogBackup.BackupPath `
+                        -NoRecovery `
+                        -ErrorAction Stop
                 }
 
                 else {
                     Restore-SqlDatabase `
-                    -ServerInstance $TargetServerInstance `
-                    -Database $TargetDatabase `
-                    -RestoreAction 'Log' `
-                    -BackupFile $LogBackup.BackupPath `
-                    -Credential $RestoreCredential `
-                    -NoRecovery `
-                    -ErrorAction Stop
+                        -ServerInstance $TargetServerInstance `
+                        -Database $TargetDatabase `
+                        -RestoreAction 'Log' `
+                        -BackupFile $LogBackup.BackupPath `
+                        -Credential $RestoreCredential `
+                        -NoRecovery `
+                        -ErrorAction Stop
                 }
                 
                 
@@ -227,11 +247,6 @@ Function Restore-RemainingLogBackups {
 
 
 
-   
-
-
-
-    
     
     
 }

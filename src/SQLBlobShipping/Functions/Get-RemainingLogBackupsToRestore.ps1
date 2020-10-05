@@ -36,7 +36,7 @@ Function Get-RemainingLogBackupsToRestore {
     catch {
         Write-Error "Failed to retrieve latest logs backup on $ServerInstance.$Database"
         Write-Output "Error Message: $_.Exception.Message"
-        break
+        return
     }
     
     

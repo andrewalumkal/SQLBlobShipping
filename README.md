@@ -55,7 +55,8 @@ foreach ($Config in $RestoreConfig) {
             -LogServerInstance $LogServerConfig.LogServer `
             -LogDatabase $LogServerConfig.LogDatabase `
             -ScriptOnly $false 
-            #-RestoreWithRecovery
+            #-RestoreWithRecovery `
+            #-RestoreCredential <RestorePSCredential>
     }
 }
 ```
@@ -76,6 +77,7 @@ foreach ($Config in $RestoreConfig) {
             -LogServerInstance $LogServerConfig.LogServer `
             -LogDatabase $LogServerConfig.LogDatabase `
             -ScriptOnly $false
+            #-RestoreCredential <RestorePSCredential>
     }
 }
 ```
@@ -126,6 +128,29 @@ foreach ($Config in $RestoreConfig) {
             -ScriptOnly $false
             #-CentralBackupHistoryServerAzureDBCertificateAuth $AzureDBCertificateAuth #Optionally can pass in certificate authentication
             #-RestoreWithRecovery
+            #-RestoreCredential <RestorePSCredential>
+    }
+}
+```
+
+#### Optional: Apply last available diff backup to all targets (this requires central backup server with backup to URL. Managed backups don't support diff backups)
+
+```powershell
+foreach ($Config in $RestoreConfig) {
+    foreach ($TargetServer in $Config.TargetServers) {
+    
+        Restore-LastDiffBackup -SourceServerInstance $Config.SourceServer `
+            -SourceDatabase $Config.SourceDatabaseName `
+            -CentralBackupHistoryServerConfig $CentralBackupServerConfig `
+            -CentralBackupHistoryCredential $credObject `
+            -TargetServerInstance $TargetServer `
+            -TargetDatabase $Config.TargetDatabaseName `
+            -LogServerInstance $LogServerConfig.LogServer `
+            -LogDatabase $LogServerConfig.LogDatabase `
+            -LogServerCredential $credObject `
+            -ScriptOnly $false
+            #-CentralBackupHistoryServerAzureDBCertificateAuth $AzureDBCertificateAuth #Optionally can pass in certificate authentication
+            #-RestoreCredential <RestorePSCredential>
     }
 }
 ```
@@ -148,6 +173,7 @@ foreach ($Config in $RestoreConfig) {
             -LogServerCredential $credObject `
             -ScriptOnly $false
             #-CentralBackupHistoryServerAzureDBCertificateAuth $AzureDBCertificateAuth #Optionally can pass in certificate authentication
+            #-RestoreCredential <RestorePSCredential>
     }
 }
 ```

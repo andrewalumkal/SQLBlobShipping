@@ -45,11 +45,11 @@ Function Restore-LatestFullBackup {
         [System.Management.Automation.PSCredential]
         $RestoreCredential,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         $LogServerInstance,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         $LogDatabase,
 
@@ -70,26 +70,48 @@ Function Restore-LatestFullBackup {
    
     )
 
-    if ($UseCentralBackupHistoryServer) {
+    #If not in script only mode, ensure log db info is passed in
+    if (!$ScriptOnly) {   
 
-        #Remove FQDN
-        $SourceServerCleansed = @($SourceServerInstance -split "\.")
-
-        $LatestFullBackup = @(Get-LatestFullBackupFromCentralServer -CentralBackupHistoryServerConfig $CentralBackupHistoryServerConfig `
-                -RestoreServerInstance $SourceServerCleansed[0] `
-                -RestoreDatabase $SourceDatabase `
-                -CentralBackupHistoryCredential $CentralBackupHistoryCredential `
-                -CentralBackupHistoryServerAzureDBCertificateAuth $CentralBackupHistoryServerAzureDBCertificateAuth)
+        if ([string]::IsNullOrEmpty($LogServerInstance) -or [string]::IsNullOrEmpty($LogDatabase)) {   
+            Write-Error "Please provide LogServerInstance and LogDatabase parameters. Or run this command in script only mode."
+            return
+        }
     }
 
-    else {
-        $LatestFullBackup = @(Get-LatestFullBackup -ServerInstance $SourceServerInstance -Database $SourceDatabase )
+
+    try {
+
+        if ($UseCentralBackupHistoryServer) {
+
+            #Remove FQDN
+            $SourceServerCleansed = @($SourceServerInstance -split "\.")
+    
+            $LatestFullBackup = @(Get-LatestFullBackupFromCentralServer -CentralBackupHistoryServerConfig $CentralBackupHistoryServerConfig `
+                    -RestoreServerInstance $SourceServerCleansed[0] `
+                    -RestoreDatabase $SourceDatabase `
+                    -CentralBackupHistoryCredential $CentralBackupHistoryCredential `
+                    -CentralBackupHistoryServerAzureDBCertificateAuth $CentralBackupHistoryServerAzureDBCertificateAuth)
+        }
+    
+        else {
+            $LatestFullBackup = @(Get-LatestFullBackup -ServerInstance $SourceServerInstance -Database $SourceDatabase )
+        }
+        
+    }
+    catch {
+
+        Write-Error "Failed to retrieve latest full backup for $SourceServerInstance - $SourceDatabase"
+        Write-Error "Error Message: $_.Exception.Message"
+        return
+        
     }
 
     
+
     if ($LatestFullBackup.Count -eq 0) {
         Write-Error "No available backup file found"
-        break
+        return
     }
 
 
@@ -119,8 +141,8 @@ Function Restore-LatestFullBackup {
         
     }
     catch {
-        Write-Output "Error Message: $_.Exception.Message"
-        break
+        Write-Error "Error Message: $_.Exception.Message"
+        return
     }
 
     
@@ -140,7 +162,18 @@ Function Restore-LatestFullBackup {
     #Set restore with recovery query
     $RestoreWithRecoveryQuery = "RESTORE DATABASE [$($TargetDatabase)] WITH RECOVERY, KEEP_CDC, ENABLE_BROKER;"
 
-    [bool]$DBAlreadyExistsOnServer = Test-DBExistsOnServer -ServerInstance $TargetServerInstance -Database $TargetDatabase
+
+    try {
+
+        [bool]$DBAlreadyExistsOnServer = Test-DBExistsOnServer -ServerInstance $TargetServerInstance -Database $TargetDatabase
+    }
+    catch {
+        Write-Output ""
+        Write-Error "ERROR: Database:[$TargetDatabase] may already exist on target server:[$TargetServerInstance] or the command was not able to check if database already exists. Restore attempt ABORTED to prevent overwrite."
+        Write-Output ""
+        return
+    }
+
 
     if ($ScriptOnly -eq $true) {
 
@@ -149,7 +182,7 @@ Function Restore-LatestFullBackup {
 
             Write-Output "--------------------------SCRIPT ONLY MODE--------------------------"
 
-            Write-Output "Restoring $SourceDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate)"
+            Write-Output "Restoring $TargetDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate[0])"
 
             if ($DBAlreadyExistsOnServer) {
                 Write-Output ""
@@ -208,7 +241,7 @@ Function Restore-LatestFullBackup {
         
         try {
 
-            Write-Output "Restoring $SourceDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate)"
+            Write-Output "Restoring $TargetDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate[0])"
 
             if ($DBAlreadyExistsOnServer) {
                 Write-Output ""
