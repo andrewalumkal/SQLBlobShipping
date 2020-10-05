@@ -1,4 +1,4 @@
-Function Restore-LatestFullBackup {
+Function Restore-LastDiffBackup {
     [cmdletbinding()]
     Param(
         [Parameter(Mandatory = $true)]
@@ -9,12 +9,7 @@ Function Restore-LatestFullBackup {
         [ValidateNotNullOrEmpty()]
         $SourceDatabase,
 
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [bool]
-        $UseCentralBackupHistoryServer = 0,
-
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $true)]
         $CentralBackupHistoryServerConfig,
 
         [Parameter(Mandatory = $false)]
@@ -32,24 +27,16 @@ Function Restore-LatestFullBackup {
         [ValidateNotNullOrEmpty()]
         $TargetDatabase,
 
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        $TargetDataPath,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        $TargetLogPath,
-
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.PSCredential]
         $RestoreCredential,
 
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         $LogServerInstance,
 
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         $LogDatabase,
 
@@ -60,9 +47,6 @@ Function Restore-LatestFullBackup {
         [Parameter(Mandatory = $false)]
         $LogServerAzureDBCertificateAuth,
 
-        [Parameter(Mandatory = $false)]
-        [Switch]$RestoreWithRecovery,
-
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [bool]
@@ -70,87 +54,85 @@ Function Restore-LatestFullBackup {
    
     )
 
-    #If not in script only mode, ensure log db info is passed in
-    if (!$ScriptOnly){   
+    #Central backup history information is REQUIRED for this function since Azure Managed backup does NOT support differential backups
+    #This function currently only supports reading backup history from a central server
 
-        if ([string]::IsNullOrEmpty($LogServerInstance) -or [string]::IsNullOrEmpty($LogDatabase)){   
-            Write-Error "Please provide LogServerInstance and LogDatabase parameters. Or run this command in script only mode."
-            return
-        }
+
+    try {
+        #Get last restored backup from log server
+        $LastRestoredBackup = Get-LastRestoredBackup -SourceServerInstance $SourceServerInstance `
+            -SourceDatabase $SourceDatabase `
+            -TargetServerInstance $TargetServerInstance `
+            -TargetDatabase $TargetDatabase `
+            -LogServerInstance $LogServerInstance `
+            -LogDatabase $LogDatabase `
+            -LogServerCredential $LogServerCredential `
+            -LogServerAzureDBCertificateAuth $LogServerAzureDBCertificateAuth
+
+    }
+    catch {
+        Write-Error "Failed to retrieve last restored backup from Log Server: $LogServerInstance , Database: $LogDatabase"
+        Write-Output "Error Message: $_.Exception.Message"
+        return
     }
 
-    if ($UseCentralBackupHistoryServer) {
-
-        #Remove FQDN
-        $SourceServerCleansed = @($SourceServerInstance -split "\.")
-
-        $LatestFullBackup = @(Get-LatestFullBackupFromCentralServer -CentralBackupHistoryServerConfig $CentralBackupHistoryServerConfig `
-                -RestoreServerInstance $SourceServerCleansed[0] `
-                -RestoreDatabase $SourceDatabase `
-                -CentralBackupHistoryCredential $CentralBackupHistoryCredential `
-                -CentralBackupHistoryServerAzureDBCertificateAuth $CentralBackupHistoryServerAzureDBCertificateAuth)
+    #Check if last restored backup was a diff backup
+    $DiffBackupRestoredLast = @($LastRestoredBackup | Where-Object { $_.BackupType -eq "Diff" })
+    if ($DiffBackupRestoredLast.Count -gt 0) {
+        Write-Error "The last log marker found was for a previously restored differential backup. Either try restoring a new full backup prior to restoring this differential backup, or there is no further work to do. Last restored diff backup LastLSN: $($LastRestoredBackup.LastLSN) | SourceServer: $SourceServerInstance , SourceDB: $SourceDatabase , TargetServer: $TargetServerInstance , TargetDB: $TargetDatabase ."
+        return
     }
 
-    else {
-        $LatestFullBackup = @(Get-LatestFullBackup -ServerInstance $SourceServerInstance -Database $SourceDatabase )
-    }
 
-    
-    if ($LatestFullBackup.Count -eq 0) {
-        Write-Error "No available backup file found"
+    #Check if it is a full backup    
+    $FullBackupRestoredLast = @($LastRestoredBackup | Where-Object { $_.BackupType -eq "Full" })
+    if ($FullBackupRestoredLast.Count -lt 1) {
+        Write-Error "A full backup log marker was not found on log server for SourceServer: $SourceServerInstance , SourceDB: $SourceDatabase , TargetServer: $TargetServerInstance , TargetDB: $TargetDatabase . Restore a full backup and try again.  Ensure this is not a copy-only backup if you need to restore a subsequent differential backup."
         return
     }
 
 
 
+    ##Get last diff backup to be applied
+
+    #Remove FQDN
+    $SourceServerCleansed = @($SourceServerInstance -split "\.")
+
+    try {
+
+        $DiffBackupToRestore = @(Get-LastDiffBackupToRestoreFromCentralServer -CentralBackupHistoryServerConfig $CentralBackupHistoryServerConfig `
+                -RestoreServerInstance $SourceServerCleansed[0] `
+                -RestoreDatabase $SourceDatabase `
+                -CentralBackupHistoryCredential $CentralBackupHistoryCredential `
+                -CentralBackupHistoryServerAzureDBCertificateAuth $CentralBackupHistoryServerAzureDBCertificateAuth `
+                -LastLSN $LastRestoredBackup.LastLSN )
+
+
+    }
+    catch {
+        Write-Error "Failed to retrieve latest diff backup from central server: $($CentralBackupHistoryServerConfig.CentralBackupHistoryServer) | Database: $($CentralBackupHistoryServerConfig.CentralBackupHistoryDatabase)"
+        Write-Output "Error Message: $_.Exception.Message"
+        return
+    }
+
+    
+
+    if ($DiffBackupToRestore.Count -eq 0) {
+        Write-Error "No diff backups found to restore after the last restored full backup with LastLSN: $($LastRestoredBackup.LastLSN) | TargetServer: $TargetServerInstance , Database: $TargetDatabase"
+        return
+    }   
+
+
+    
+    #Cater for striped diff backups
     $BackupFiles = @()
-    foreach ($file in $LatestFullBackup) {
+    foreach ($file in $DiffBackupToRestore) {
 
         $BackupFiles += $file.BackupPath
     }
 
-    $FirstFile = $BackupFiles[0]
-
-    # Relocate files
-    $dbfiles = @()
-    $relocate = @()
-
-    try {
-        $query = "RESTORE FileListOnly FROM  URL='$FirstFile'"
-
-        if ($RestoreCredential -eq $null) {
-            $dbfiles = Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $query -Database master -ErrorAction Stop
-        }
-
-        else {
-            $dbfiles = Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $query -Database master -Credential $RestoreCredential -ErrorAction Stop
-        }
-        
-    }
-    catch {
-        Write-Error "Error Message: $_.Exception.Message"
-        break
-    }
 
     
-
-    foreach ($dbfile in $dbfiles) {
-        $DbFileName = $dbfile.PhysicalName | Split-Path -Leaf
-    
-        if ($dbfile.Type -eq 'L') {
-            $newfile = [IO.Path]::Combine($TargetLogPath, $DbFileName)
-        }
-        else {
-            $newfile = [IO.Path]::Combine($TargetDataPath, $DbFileName)
-        }
-        $relocate += New-Object Microsoft.SqlServer.Management.Smo.RelocateFile ($dbfile.LogicalName, $newfile.ToString())
-    }
-
-    #Set restore with recovery query
-    $RestoreWithRecoveryQuery = "RESTORE DATABASE [$($TargetDatabase)] WITH RECOVERY, KEEP_CDC, ENABLE_BROKER;"
-
-    [bool]$DBAlreadyExistsOnServer = Test-DBExistsOnServer -ServerInstance $TargetServerInstance -Database $TargetDatabase
-
     if ($ScriptOnly -eq $true) {
 
         #Script only
@@ -158,20 +140,13 @@ Function Restore-LatestFullBackup {
 
             Write-Output "--------------------------SCRIPT ONLY MODE--------------------------"
 
-            Write-Output "Restoring $TargetDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate[0])"
-
-            if ($DBAlreadyExistsOnServer) {
-                Write-Output ""
-                Write-Output "WARNING: Database:[$TargetDatabase] may already exist on target server:[$TargetServerInstance] or the command was not able to check if database already exists."
-                Write-Output ""
-            }
+            Write-Output "Restoring last diff backup for [$TargetDatabase] on [$TargetServerInstance] . Backup complete date: $($DiffBackupToRestore.BackupFinishDate[0])"
 
             #Script restore
             if ($RestoreCredential -eq $null) {
                 Restore-SqlDatabase `
                     -ServerInstance $TargetServerInstance `
                     -Database $TargetDatabase `
-                    -RelocateFile $relocate `
                     -RestoreAction 'Database' `
                     -BackupFile $BackupFiles `
                     -NoRecovery `
@@ -183,7 +158,6 @@ Function Restore-LatestFullBackup {
                 Restore-SqlDatabase `
                     -ServerInstance $TargetServerInstance `
                     -Database $TargetDatabase `
-                    -RelocateFile $relocate `
                     -RestoreAction 'Database' `
                     -BackupFile $BackupFiles `
                     -Credential $RestoreCredential `
@@ -192,18 +166,12 @@ Function Restore-LatestFullBackup {
                     -ErrorAction Stop
             }
             
-
-            if ($RestoreWithRecovery) {
-                Write-Output ""
-                Write-Output "Script to recover database after restore:"
-                Write-Output $RestoreWithRecoveryQuery
-                Write-Output ""
-            }
             
             Write-Output "--------------------------END OF SCRIPT--------------------------"
             Write-Output ""
             
         }
+
         catch {
             $ErrorMessage = $_.Exception.Message
             Write-Error "Error Message: $ErrorMessage"
@@ -217,14 +185,7 @@ Function Restore-LatestFullBackup {
         
         try {
 
-            Write-Output "Restoring $TargetDatabase on $TargetServerInstance . Backup complete date: $($LatestFullBackup.BackupFinishDate[0])"
-
-            if ($DBAlreadyExistsOnServer) {
-                Write-Output ""
-                Write-Error "ERROR: Database:[$TargetDatabase] may already exist on target server:[$TargetServerInstance] or the command was not able to check if database already exists. Restore attempt ABORTED to prevent overwrite."
-                Write-Output ""
-                return
-            }
+            Write-Output "Restoring last diff backup for [$TargetDatabase] on [$TargetServerInstance] . Backup complete date: $($DiffBackupToRestore.BackupFinishDate[0])"
 
             #Log operation to log server
             $LogID = $null
@@ -237,7 +198,7 @@ Function Restore-LatestFullBackup {
                 -LogDatabase $LogDatabase `
                 -LogServerCredential $LogServerCredential `
                 -LogServerAzureDBCertificateAuth $LogServerAzureDBCertificateAuth `
-                -BackupInfo $LatestFullBackup[0] `
+                -BackupInfo $DiffBackupToRestore[0] `
                 -ErrorAction Stop
 
             #Run restore
@@ -246,16 +207,10 @@ Function Restore-LatestFullBackup {
                 Restore-SqlDatabase `
                     -ServerInstance $TargetServerInstance `
                     -Database $TargetDatabase `
-                    -RelocateFile $relocate `
                     -RestoreAction 'Database' `
                     -BackupFile $BackupFiles `
                     -NoRecovery `
                     -ErrorAction Stop  
-                    
-                if ($RestoreWithRecovery) {
-                    Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -ErrorAction Stop
-                } 
-            
             }
 
             else {
@@ -263,18 +218,11 @@ Function Restore-LatestFullBackup {
                 Restore-SqlDatabase `
                     -ServerInstance $TargetServerInstance `
                     -Database $TargetDatabase `
-                    -RelocateFile $relocate `
                     -RestoreAction 'Database' `
                     -BackupFile $BackupFiles `
                     -NoRecovery `
                     -Credential $RestoreCredential `
-                    -ErrorAction Stop
-
-                if ($RestoreWithRecovery) {
-                    Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -Credential $RestoreCredential -ErrorAction Stop
-                } 
-            
-                    
+                    -ErrorAction Stop    
             }
 
 
@@ -287,8 +235,9 @@ Function Restore-LatestFullBackup {
                 -LogServerAzureDBCertificateAuth $LogServerAzureDBCertificateAuth `
                 -ErrorAction Stop
 
-            
         }
+
+
         catch {
             $ErrorMessage = $_.Exception.Message
             Write-Error "Error Message: $ErrorMessage"
@@ -305,8 +254,12 @@ Function Restore-LatestFullBackup {
             }
 
             return
+
         }
+
     }
     
+
+
     
 }
