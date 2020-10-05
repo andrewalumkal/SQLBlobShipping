@@ -83,26 +83,39 @@ Function Restore-RemainingLogBackups {
         return
     }
 
-    #Get all log backups to be applied
-    if ($UseCentralBackupHistoryServer) {
 
-        #Remove FQDN
-        $SourceServerCleansed = @($SourceServerInstance -split "\.")
 
-        $LogBackupsToRestore = @(Get-RemainingLogBackupsToRestoreFromCentralServer -CentralBackupHistoryServerConfig $CentralBackupHistoryServerConfig `
-                -RestoreServerInstance $SourceServerCleansed[0] `
-                -RestoreDatabase $SourceDatabase `
-                -CentralBackupHistoryCredential $CentralBackupHistoryCredential `
-                -CentralBackupHistoryServerAzureDBCertificateAuth $CentralBackupHistoryServerAzureDBCertificateAuth `
-                -LastLSN $LastRestoredBackup.LastLSN | Sort-Object -Property LastLSN)
+    try {
+
+        #Get all log backups to be applied
+        if ($UseCentralBackupHistoryServer) {
+
+            #Remove FQDN
+            $SourceServerCleansed = @($SourceServerInstance -split "\.")
+
+            $LogBackupsToRestore = @(Get-RemainingLogBackupsToRestoreFromCentralServer -CentralBackupHistoryServerConfig $CentralBackupHistoryServerConfig `
+                    -RestoreServerInstance $SourceServerCleansed[0] `
+                    -RestoreDatabase $SourceDatabase `
+                    -CentralBackupHistoryCredential $CentralBackupHistoryCredential `
+                    -CentralBackupHistoryServerAzureDBCertificateAuth $CentralBackupHistoryServerAzureDBCertificateAuth `
+                    -LastLSN $LastRestoredBackup.LastLSN | Sort-Object -Property LastLSN)
+        }
+
+        else {
+
+            $LogBackupsToRestore = @(Get-RemainingLogBackupsToRestore -ServerInstance $SourceServerInstance `
+                    -Database $SourceDatabase `
+                    -LastLSN $LastRestoredBackup.LastLSN | Sort-Object -Property LastLSN)
+        }
+
     }
-
-    else {
-
-        $LogBackupsToRestore = @(Get-RemainingLogBackupsToRestore -ServerInstance $SourceServerInstance `
-                -Database $SourceDatabase `
-                -LastLSN $LastRestoredBackup.LastLSN | Sort-Object -Property LastLSN)
+    catch {
+        
+        Write-Error "Failed to retrieve latest logs backups"
+        Write-Output "Error Message: $_.Exception.Message"
+        return
     }
+    
     
 
     if ($LogBackupsToRestore.Count -eq 0) {
@@ -234,11 +247,6 @@ Function Restore-RemainingLogBackups {
 
 
 
-   
-
-
-
-    
     
     
 }
