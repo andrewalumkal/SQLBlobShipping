@@ -278,7 +278,7 @@ Function Restore-LatestFullBackup {
                     
                 if ($RestoreWithRecovery) {
                     Write-Output "Running restore with recovery for $TargetDatabase on $TargetServerInstance"
-                    Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -ErrorAction Stop
+                    Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -QueryTimeout 600 -ErrorAction Stop
                 } 
             
             }
@@ -297,7 +297,7 @@ Function Restore-LatestFullBackup {
 
                 if ($RestoreWithRecovery) {
                     Write-Output "Running restore with recovery for $TargetDatabase on $TargetServerInstance"
-                    Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -Credential $RestoreCredential -ErrorAction Stop
+                    Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -QueryTimeout 600 -Credential $RestoreCredential -ErrorAction Stop
                 } 
             
                     
