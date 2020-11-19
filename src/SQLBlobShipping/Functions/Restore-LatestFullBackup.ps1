@@ -277,6 +277,7 @@ Function Restore-LatestFullBackup {
                     -ErrorAction Stop  
                     
                 if ($RestoreWithRecovery) {
+                    Write-Output "Running restore with recovery for $TargetDatabase on $TargetServerInstance"
                     Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -ErrorAction Stop
                 } 
             
@@ -295,6 +296,7 @@ Function Restore-LatestFullBackup {
                     -ErrorAction Stop
 
                 if ($RestoreWithRecovery) {
+                    Write-Output "Running restore with recovery for $TargetDatabase on $TargetServerInstance"
                     Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -Credential $RestoreCredential -ErrorAction Stop
                 } 
             
@@ -310,7 +312,8 @@ Function Restore-LatestFullBackup {
                 -LogServerCredential $LogServerCredential `
                 -LogServerAzureDBCertificateAuth $LogServerAzureDBCertificateAuth `
                 -ErrorAction Stop
-
+            
+            Write-Output "Restore for $TargetDatabase on $TargetServerInstance completed on $(Get-Date)"
             
         }
         catch {
