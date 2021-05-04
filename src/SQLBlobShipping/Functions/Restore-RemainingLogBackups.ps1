@@ -130,7 +130,7 @@ Function Restore-RemainingLogBackups {
             
             #Script Only
             try {
-    
+                Write-Output "--------------------------SCRIPT ONLY MODE--------------------------"
                 Write-Output "Restoring log with LastLSN: $($LogBackup.LastLSN) on $TargetServerInstance - $TargetDatabase"
                 
                 #Script restore
