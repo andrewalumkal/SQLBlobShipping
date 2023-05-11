@@ -13,9 +13,6 @@ Function Out-CreateSQLStorageCredentialScript {
         [ValidateNotNullOrEmpty()]
         $ContainerName,
         
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        $Subscription,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -27,7 +24,7 @@ Function Out-CreateSQLStorageCredentialScript {
      Install-Module -Name Az.Storage -Force -AllowClobber
 
      Import-Module -Name Az.Storage -Force 
-    Connect-AzAccount -Subscription $Subscription
+
     
     $storageContext = New-AzStorageContext -StorageAccountName $StorageAccountName -StorageAccountKey $AccountKey  
     $sas = New-AzStorageContainerSASToken -name $ContainerName -Policy $PolicyName -Context $storageContext 
