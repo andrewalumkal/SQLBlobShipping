@@ -12,6 +12,10 @@ Function Out-CreateSQLStorageCredentialScript {
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         $ContainerName,
+        
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        $Subscription,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -20,10 +24,13 @@ Function Out-CreateSQLStorageCredentialScript {
     )
 
 
-    Import-Module -Name AzureRM -Force 
+     Install-Module -Name Az.Storage -Force -AllowClobber
+
+     Import-Module -Name Az.Storage -Force 
+    Connect-AzAccount -Subscription $Subscription
     
-    $storageContext = New-AzureStorageContext -StorageAccountName $StorageAccountName -StorageAccountKey $AccountKey  
-    $sas = New-AzureStorageContainerSASToken -name $ContainerName -Policy $PolicyName -Context $storageContext 
+    $storageContext = New-AzStorageContext -StorageAccountName $StorageAccountName -StorageAccountKey $AccountKey  
+    $sas = New-AzStorageContainerSASToken -name $ContainerName -Policy $PolicyName -Context $storageContext 
     $secret = $($sas.Substring(1)) 
     $ContainerUri = 'https://' + $StorageAccountName + '.blob.core.windows.net/' + $ContainerName 
 
@@ -42,6 +49,3 @@ Function Out-CreateSQLStorageCredentialScript {
 
 
 }
-
-
-
