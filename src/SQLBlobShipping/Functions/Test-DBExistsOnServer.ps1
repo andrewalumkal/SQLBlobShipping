@@ -21,7 +21,7 @@ Function Test-DBExistsOnServer {
     [bool]$DBExistsOnServer = 1
 
     try {
-        $result = @(Invoke-Sqlcmd -ServerInstance $ServerInstance -query $query -Database master -ErrorAction Stop)
+        $result = @(Invoke-Sqlcmd -ServerInstance $ServerInstance -query $query -Database master -TrustServerCertificate -ErrorAction Stop)
 
     }
 

@@ -132,11 +132,11 @@ Function Restore-LatestFullBackup {
         $query = "RESTORE FileListOnly FROM  URL='$FirstFile'"
 
         if ($RestoreCredential -eq $null) {
-            $dbfiles = Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $query -Database master -ErrorAction Stop
+            $dbfiles = Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $query -Database master -TrustServerCertificate -ErrorAction Stop
         }
 
         else {
-            $dbfiles = Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $query -Database master -Credential $RestoreCredential -ErrorAction Stop
+            $dbfiles = Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $query -Database master -Credential $RestoreCredential -TrustServerCertificate -ErrorAction Stop
         }
         
     }
@@ -278,7 +278,7 @@ Function Restore-LatestFullBackup {
                     
                 if ($RestoreWithRecovery) {
                     Write-Output "Running restore with recovery for $TargetDatabase on $TargetServerInstance"
-                    Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -QueryTimeout 600 -ErrorAction Stop
+                    Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -QueryTimeout 600 -TrustServerCertificate -ErrorAction Stop
                 } 
             
             }
@@ -297,7 +297,7 @@ Function Restore-LatestFullBackup {
 
                 if ($RestoreWithRecovery) {
                     Write-Output "Running restore with recovery for $TargetDatabase on $TargetServerInstance"
-                    Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -QueryTimeout 600 -Credential $RestoreCredential -ErrorAction Stop
+                    Invoke-Sqlcmd -ServerInstance $TargetServerInstance -query $RestoreWithRecoveryQuery -Database master -QueryTimeout 600 -Credential $RestoreCredential -TrustServerCertificate -ErrorAction Stop
                 } 
             
                     

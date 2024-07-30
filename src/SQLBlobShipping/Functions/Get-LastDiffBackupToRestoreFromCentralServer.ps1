@@ -50,6 +50,7 @@ Function Get-LastDiffBackupToRestoreFromCentralServer {
                 -query $query `
                 -Database $CentralBackupHistoryServerConfig.CentralBackupHistoryDatabase `
                 -Credential $CentralBackupHistoryCredential `
+                -TrustServerCertificate `
                 -ErrorAction Stop
         }
 
@@ -57,6 +58,7 @@ Function Get-LastDiffBackupToRestoreFromCentralServer {
             $LatestDiffBackups = Invoke-Sqlcmd -ServerInstance $CentralBackupHistoryServerConfig.CentralBackupHistoryServer `
                 -query $query `
                 -Database $CentralBackupHistoryServerConfig.CentralBackupHistoryDatabase `
+                -TrustServerCertificate `
                 -ErrorAction Stop
         }
 
