@@ -54,11 +54,12 @@ Function Write-UpdateRestoreOperationLogFailure {
                 -query $query `
                 -Database $LogDatabase `
                 -Credential $LogServerCredential `
+                -TrustServerCertificate `
                 -ErrorAction Stop
         }
 
         else {
-            Invoke-Sqlcmd -ServerInstance $LogServerInstance -query $query -Database $LogDatabase -ErrorAction Stop
+            Invoke-Sqlcmd -ServerInstance $LogServerInstance -query $query -Database $LogDatabase -TrustServerCertificate -ErrorAction Stop
         }
 
     }

@@ -86,11 +86,12 @@ Function Write-NewRestoreOperationLog {
                 -query $query `
                 -Database $LogDatabase `
                 -Credential $LogServerCredential `
+                -TrustServerCertificate `
                 -ErrorAction Stop
         }
 
         else {
-            $InsertedLogID = Invoke-Sqlcmd -ServerInstance $LogServerInstance -query $query -Database $LogDatabase -ErrorAction Stop
+            $InsertedLogID = Invoke-Sqlcmd -ServerInstance $LogServerInstance -query $query -Database $LogDatabase -TrustServerCertificate -ErrorAction Stop
         }
         
         

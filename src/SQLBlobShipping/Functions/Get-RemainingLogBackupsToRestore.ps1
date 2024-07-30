@@ -30,7 +30,7 @@ Function Get-RemainingLogBackupsToRestore {
 "@
 
     try {
-        Invoke-Sqlcmd -ServerInstance $serverInstance -query $query -Database msdb 
+        Invoke-Sqlcmd -ServerInstance $serverInstance -query $query -Database msdb -TrustServerCertificate
     }
 
     catch {

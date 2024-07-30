@@ -75,11 +75,12 @@ Function Get-LastRestoredBackup {
                 -query $query `
                 -Database $LogDatabase `
                 -Credential $LogServerCredential `
+                -TrustServerCertificate `
                 -ErrorAction Stop
         }
 
         else {
-            $LastRestoredBackup = Invoke-Sqlcmd -ServerInstance $LogServerInstance -query $query -Database $LogDatabase -ErrorAction Stop
+            $LastRestoredBackup = Invoke-Sqlcmd -ServerInstance $LogServerInstance -query $query -Database $LogDatabase -TrustServerCertificate -ErrorAction Stop
         }
 
         
